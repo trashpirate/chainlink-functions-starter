@@ -2,3 +2,5 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 foundry-devops/=lib/foundry-devops/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@chainlink/contracts/=lib/chainlink/contracts/
+@solmate/=lib/solmate/src/
