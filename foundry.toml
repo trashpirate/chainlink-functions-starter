@@ -1,0 +1,17 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.20"
+optimizer = true
+optimizer_rounds = 200
+fs_permissions = [{ access = "read", path = "./broadcast" }]
+
+
+[fuzz]
+runs = 10000
+
+[invariant]
+runs = 128
+depth = 128
+fail_on_revert = true
