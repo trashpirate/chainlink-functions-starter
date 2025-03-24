@@ -20,6 +20,7 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
     uint96 public immutable GAS_PRICE_LINK;
     uint16 public immutable MAX_CONSUMERS = 100;
 
+    error DuplicateRequestId(bytes32 requestId);
     error InvalidSubscription();
     error InsufficientBalance();
     error MustBeSubOwner(address owner);
@@ -67,6 +68,7 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
 
     Config private s_config;
     uint64 internal s_currentSubId; // Tracks subscription IDs
+    uint256 internal s_nextRequestId = 1;
 
     // Subscription state
     // struct Subscription {
@@ -78,20 +80,13 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
     //     bytes32 flags; // ══════════╸ Per-subscription flags
     // }
     mapping(uint64 => Subscription) internal s_subscriptions;
-    mapping(uint64 => address[]) internal s_consumers; /* subId */ /* consumers */
-
+    mapping(address consumer => mapping(uint64 subscriptionId => Consumer)) private s_consumers;
+    mapping(bytes32 requestId => bytes32 commitmentHash) internal s_requestCommitments;
     // Route state
     mapping(bytes32 => address) private s_route; // DON ID to coordinator address
     bytes32 private s_allowListId; // Mocked allow list ID (unused)
 
-    modifier onlyValidConsumer(uint64 _subId, address _consumer) {
-        if (!consumerIsAdded(_subId, _consumer)) {
-            revert InvalidConsumer();
-        }
-        _;
-    }
-
-    modifier onlySubOwner(uint64 _subId) {
+    modifier _onlySubscriptionOwner(uint64 _subId) {
         address owner = s_subscriptions[_subId].owner;
         if (owner == address(0)) {
             revert InvalidSubscription();
@@ -114,16 +109,6 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
     function setConfig(Config memory config) public onlyOwner {
         s_config = config;
         emit ConfigSet();
-    }
-
-    function consumerIsAdded(uint64 _subId, address _consumer) public view returns (bool) {
-        address[] memory consumers = s_consumers[_subId];
-        for (uint256 i = 0; i < consumers.length; i++) {
-            if (consumers[i] == _consumer) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // Subscription Management
@@ -158,19 +143,23 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
         emit SubscriptionFunded(_subId, oldBalance, oldBalance + _amount);
     }
 
-    function ownerCancelSubscription(uint64 _subId, address _to) external onlySubOwner(_subId) {
+    function ownerCancelSubscription(uint64 _subId, address _to) external _onlySubscriptionOwner(_subId) {
         emit SubscriptionCanceled(_subId, _to, s_subscriptions[_subId].balance);
         delete (s_subscriptions[_subId]);
     }
 
-    function ownerCancelSubscription(uint64 subscriptionId) external onlySubOwner(subscriptionId) {
+    function ownerCancelSubscription(uint64 subscriptionId) external _onlySubscriptionOwner(subscriptionId) {
         emit SubscriptionCanceled(subscriptionId, address(0), s_subscriptions[subscriptionId].balance);
         delete s_subscriptions[subscriptionId];
     }
 
-    function cancelSubscription(uint64 _subId, address _to) external override onlySubOwner(_subId) {
+    function cancelSubscription(uint64 _subId, address _to) external override _onlySubscriptionOwner(_subId) {
         emit SubscriptionCanceled(_subId, _to, s_subscriptions[_subId].balance);
         delete (s_subscriptions[_subId]);
+    }
+
+    function proposeSubscriptionOwnerTransfer(uint64 subscriptionId, address newOwner) external override {
+        s_subscriptions[subscriptionId].proposedOwner = newOwner;
     }
 
     function acceptSubscriptionOwnerTransfer(uint64 subscriptionId) external {
@@ -201,24 +190,19 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
     }
 
     function getConsumer(address client, uint64 subscriptionId) external view returns (Consumer memory) {
-        Subscription memory sub = s_subscriptions[subscriptionId];
-        for (uint256 i = 0; i < sub.consumers.length; i++) {
-            if (sub.consumers[i] == client) {
-                return Consumer(true, 0, 0);
-            }
-        }
-
-        return Consumer(false, 0, 0);
+        return s_consumers[client][subscriptionId];
     }
 
-    function addConsumer(uint64 _subId, address _consumer) public onlySubOwner(_subId) {
+    function addConsumer(uint64 _subId, address _consumer) public _onlySubscriptionOwner(_subId) {
         Subscription storage sub = s_subscriptions[_subId];
 
         if (sub.consumers.length == s_config.maxConsumersPerSubscription) {
             revert TooManyConsumers();
         }
 
-        if (consumerIsAdded(_subId, _consumer)) {
+        if (s_consumers[_consumer][_subId].allowed) {
+            // Idempotence - do nothing if already added.
+            // Ensures uniqueness in s_subscriptions[subscriptionId].consumers.
             return;
         }
 
@@ -226,12 +210,10 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
         emit ConsumerAdded(_subId, _consumer);
     }
 
-    function removeConsumer(uint64 _subId, address _consumer)
-        external
-        override
-        onlySubOwner(_subId)
-        onlyValidConsumer(_subId, _consumer)
-    {
+    function removeConsumer(uint64 _subId, address _consumer) external override _onlySubscriptionOwner(_subId) {
+        Consumer memory consumerData = s_consumers[_consumer][_subId];
+        _isAllowedConsumer(_consumer, _subId);
+
         Subscription storage sub = s_subscriptions[_subId];
         address[] storage consumers = sub.consumers;
         for (uint256 i = 0; i < consumers.length; i++) {
@@ -242,7 +224,7 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
                 break;
             }
         }
-
+        delete s_consumers[_consumer][_subId];
         emit ConsumerRemoved(_subId, _consumer);
     }
 
@@ -254,28 +236,56 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
         uint32 callbackGasLimit,
         bytes32 donId
     ) public override returns (bytes32) {
-        require(data.length > 0, "EmptyRequestData");
-        require(s_subscriptions[subscriptionId].owner != address(0), "Invalid subscription");
         IFunctionsCoordinator coordinator = IFunctionsCoordinator(getContractById(donId));
+        return _sendRequest(donId, coordinator, subscriptionId, data, dataVersion, callbackGasLimit);
+    }
 
-        FunctionsResponse.Commitment memory commitment = coordinator.startRequest(
-            FunctionsResponse.RequestMeta({
-                requestingContract: msg.sender,
-                data: data,
-                subscriptionId: subscriptionId,
-                dataVersion: dataVersion,
-                flags: bytes32(0), // Mocked flags
-                callbackGasLimit: callbackGasLimit,
-                adminFee: s_config.adminFee,
-                initiatedRequests: 0, // Simplified, no tracking
-                completedRequests: 0, // Simplified, no tracking
-                availableBalance: s_subscriptions[subscriptionId].balance,
-                subscriptionOwner: s_subscriptions[subscriptionId].owner
-            })
+    function sendRequestToProposed(
+        uint64 subscriptionId,
+        bytes calldata data,
+        uint16 dataVersion,
+        uint32 callbackGasLimit,
+        bytes32 donId
+    ) external override returns (bytes32) {
+        IFunctionsCoordinator coordinator = IFunctionsCoordinator(getContractById(donId));
+        return _sendRequest(donId, coordinator, subscriptionId, data, dataVersion, callbackGasLimit);
+    }
+
+    function _sendRequest(
+        bytes32 donId,
+        IFunctionsCoordinator coordinator,
+        uint64 subscriptionId,
+        bytes memory data,
+        uint16 dataVersion,
+        uint32 callbackGasLimit
+    ) private returns (bytes32) {
+        bytes32 requestId = bytes32(s_nextRequestId++);
+
+        // Do not allow setting a comittment for a requestId that already exists
+        if (s_requestCommitments[requestId] != bytes32(0)) {
+            revert DuplicateRequestId(requestId);
+        }
+
+        s_requestCommitments[requestId] = keccak256(
+            abi.encode(
+                FunctionsResponse.Commitment({
+                    adminFee: 0,
+                    coordinator: address(coordinator),
+                    client: msg.sender,
+                    subscriptionId: subscriptionId,
+                    callbackGasLimit: callbackGasLimit,
+                    estimatedTotalCostJuels: 0,
+                    timeoutTimestamp: 0,
+                    requestId: requestId,
+                    donFee: 0,
+                    gasOverheadBeforeCallback: 0,
+                    gasOverheadAfterCallback: 0
+                })
+            )
         );
 
         emit RequestStart(
-            commitment.requestId,
+            requestId,
             donId,
             subscriptionId,
             s_subscriptions[subscriptionId].owner,
@@ -287,18 +297,7 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
             0 // No cost estimation in mock
         );
 
-        return commitment.requestId;
-    }
-
-    function sendRequestToProposed(
-        uint64 subscriptionId,
-        bytes calldata data,
-        uint16 dataVersion,
-        uint32 callbackGasLimit,
-        bytes32 donId
-    ) external override returns (bytes32) {
-        // For simplicity, use the same logic as sendRequest in mock
-        return sendRequest(subscriptionId, data, dataVersion, callbackGasLimit, donId);
+        return requestId;
     }
 
     function fulfill(
@@ -322,6 +321,22 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
             success ? FunctionsResponse.FulfillResult.FULFILLED : FunctionsResponse.FulfillResult.USER_CALLBACK_ERROR;
 
         return (resultCode, 0); // No gas cost tracking in mock
+
+        delete s_requestCommitments[commitment.requestId];
+    }
+
+    /// @dev Used within this file & FunctionsRouter.sol
+    function _isExistingSubscription(uint64 subscriptionId) internal view {
+        if (s_subscriptions[subscriptionId].owner == address(0)) {
+            revert InvalidSubscription();
+        }
+    }
+
+    /// @dev Used within FunctionsRouter.sol
+    function _isAllowedConsumer(address client, uint64 subscriptionId) internal view {
+        if (!s_consumers[client][subscriptionId].allowed) {
+            revert InvalidConsumer();
+        }
     }
 
     // Config Functions
@@ -352,7 +367,6 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
         }
     }
 
-    // Route Functions
     function getContractById(bytes32 id) public view override returns (address) {
         address coordinator = s_route[id];
         require(coordinator != address(0), "RouteNotFound");
@@ -379,24 +393,24 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
         }
     }
 
-    function timeoutRequests(FunctionsResponse.Commitment[] calldata requestsToTimeoutByCommitment) external override {
-        // No-op in mock
-    }
-
-    function recoverFunds(address to) external override onlyOwner {
-        // No-op in mock
+    function setFlags(uint64 subscriptionId, bytes32 flags) external override {
+        s_subscriptions[subscriptionId].flags = flags;
     }
 
     function pendingRequestExists(uint64 subscriptionId) external pure returns (bool) {
         return false;
     }
 
-    function proposeSubscriptionOwnerTransfer(uint64 subscriptionId, address newOwner) external override {
-        s_subscriptions[subscriptionId].proposedOwner = newOwner;
+    function getTotalBalance() external view returns (uint96) {
+        return uint96(linkToken.balanceOf(address(this)));
     }
 
-    function setFlags(uint64 subscriptionId, bytes32 flags) external override {
-        s_subscriptions[subscriptionId].flags = flags;
+    function timeoutRequests(FunctionsResponse.Commitment[] calldata requestsToTimeoutByCommitment) external override {
+        // No-op in mock
+    }
+
+    function recoverFunds(address to) external override onlyOwner {
+        // No-op in mock
     }
 
     function pause() external override onlyOwner {
@@ -408,14 +422,10 @@ contract FunctionsRouterMock is IFunctionsRouter, IFunctionsSubscriptions, Confi
     }
 
     function updateContracts() external override onlyOwner {
-        // No-op in mock: updates applied directly in proposeContractsUpdate
+        // No-op in mock
     }
 
     function oracleWithdraw(address recipient, uint96 amount) external override {
         // No-op in mock
-    }
-
-    function getTotalBalance() external view returns (uint96) {
-        return uint96(linkToken.balanceOf(address(this)));
     }
 }
