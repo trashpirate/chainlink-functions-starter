@@ -9,11 +9,11 @@ import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/Confir
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
 /**
- * @title FunctionsBase
+ * @title FunctionsConsumer
  * @author Nadina Oates
  * @notice Simple Chainlink Functions contract
  */
-contract FunctionsBase is FunctionsClient, ConfirmedOwner {
+contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
 
     /*//////////////////////////////////////////////////////////////

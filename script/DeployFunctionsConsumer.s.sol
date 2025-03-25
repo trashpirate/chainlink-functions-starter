@@ -2,12 +2,12 @@
 pragma solidity 0.8.26;
 
 import {Script} from "forge-std/Script.sol";
-import {FunctionsBase} from "src/FunctionsBase.sol";
+import {FunctionsConsumer} from "src/FunctionsConsumer.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {CreateSubscription, FundSubscription} from "./Subscriptions.s.sol";
+import {CreateSubscription, FundSubscription, AddConsumer} from "./Subscriptions.s.sol";
 
-contract DeployFunctionsBase is Script {
-    function run() external returns (FunctionsBase, HelperConfig) {
+contract DeployFunctionsConsumer is Script {
+    function run() external returns (FunctionsConsumer, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
 
         (
@@ -30,8 +30,13 @@ contract DeployFunctionsBase is Script {
         }
 
         vm.startBroadcast();
-        FunctionsBase myContract = new FunctionsBase(functionsRouter, subscriptionId);
+        FunctionsConsumer consumer = new FunctionsConsumer(functionsRouter, subscriptionId);
         vm.stopBroadcast();
-        return (myContract, helperConfig);
+
+        // add consumer
+        AddConsumer addConsumer = new AddConsumer();
+        addConsumer.addConsumer(address(consumer), functionsRouter, subscriptionId, deployerKey);
+
+        return (consumer, helperConfig);
     }
 }

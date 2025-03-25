@@ -72,26 +72,27 @@ contract FundSubscription is Script {
     }
 }
 
-// contract AddConsumer is Script {
-//     function addConsumer(address lottery, address vrfCoordinator, uint64 subId, uint256 deployerKey) public {
-//         console.log("Adding Consumer contract: ", lottery);
-//         console.log("Using vrfcoodinator: ", vrfCoordinator);
-//         console.log("On ChainId: ", block.chainid);
+contract AddConsumer is Script {
+    function addConsumer(address consumer, address functionsRouter, uint64 subId, uint256 deployerKey) public {
+        console.log("Adding Consumer contract: ", consumer);
+        console.log("Using Functions Router: ", functionsRouter);
+        console.log("On ChainId: ", block.chainid);
 
-//         vm.startBroadcast(deployerKey);
-//         VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(subId, lottery);
-//         vm.stopBroadcast();
-//     }
+        vm.startBroadcast(deployerKey);
+        FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
+        vm.stopBroadcast();
+    }
 
-//     function addConsumerUsingConfig(address lottery) public {
-//         HelperConfig helperConfig = new HelperConfig();
-//         (,, address vrfCoordinator,, uint64 subId,,, uint256 deployerKey) = helperConfig.activeNetworkConfig();
-//         console.log("deployer: ", deployerKey);
-//         addConsumer(lottery, vrfCoordinator, subId, deployerKey);
-//     }
+    function addConsumerUsingConfig(address functionsConsumer) public {
+        HelperConfig helperConfig = new HelperConfig();
+        (address functionsRouter,, address link,, uint64 subId, uint256 deployerKey) =
+            helperConfig.activeNetworkConfig();
+        console.log("deployer: ", deployerKey);
+        addConsumer(functionsConsumer, functionsRouter, subId, deployerKey);
+    }
 
-//     function run() external {
-//         address lottery = DevOpsTools.get_most_recent_deployment("Lottery", block.chainid);
-//         addConsumerUsingConfig(lottery);
-//     }
-// }
+    function run() external {
+        address functionsConsumer = DevOpsTools.get_most_recent_deployment("FunctionsConsumer", block.chainid);
+        addConsumerUsingConfig(functionsConsumer);
+    }
+}
