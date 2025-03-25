@@ -11,7 +11,7 @@
 
 
 ## About
-Project Description
+This repo contains a starter kit for developing and testing smart contracts with [Chainlink Functions](https://docs.chain.link/chainlink-functions/). It includes a basic `FunctionsConsumer` contract and a `FunctionsRouterMock` contract to locally test send and fulfill requests. Note that this setup short-circuits the Chainlink oracle network and is only for local testing.
 
 ## Installation
 
@@ -21,7 +21,7 @@ $ make install
 ```
 
 ## Usage
-Before running any commands, create a .env file and add the following environment variables:
+Before running any commands, create a .env file and add the following environment variables (see .env.example):
 
 ```bash
 # network configs
