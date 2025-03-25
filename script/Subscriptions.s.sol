@@ -13,13 +13,14 @@ contract CreateSubscription is Script {
     function createSubscriptionUsingConfig() public returns (uint64) {
         HelperConfig helperConfig = new HelperConfig();
 
-        (address functionsRouter,,,,, uint256 deployerKey) = helperConfig.activeNetworkConfig();
+        (address functionsRouter,,,, uint256 deployerKey) = helperConfig.activeNetworkConfig();
 
         return createSubscription(functionsRouter, deployerKey);
     }
 
     function createSubscription(address functionsRouter, uint256 deployerKey) public returns (uint64) {
         console.log("Creating subscription on ChainId: ", block.chainid);
+        console.log("Using Functions Router: ", functionsRouter);
 
         uint64 subId;
         if (block.chainid == 31337) {
@@ -31,7 +32,7 @@ contract CreateSubscription is Script {
             subId = IFunctionsSubscriptions(functionsRouter).createSubscription();
             vm.stopBroadcast();
         }
-        console.log("SubId: ", subId);
+        console.log("Created Subscription with SubId: ", subId);
         return subId;
     }
 
@@ -46,16 +47,14 @@ contract FundSubscription is Script {
     function fundSubscriptionConfig() public {
         HelperConfig helperConfig = new HelperConfig();
 
-        (address functionsRouter,, address link,, uint64 subId, uint256 deployerKey) =
-            helperConfig.activeNetworkConfig();
+        (address functionsRouter, address link,, uint64 subId, uint256 deployerKey) = helperConfig.activeNetworkConfig();
 
         fundSubscription(functionsRouter, subId, link, deployerKey);
     }
 
     function fundSubscription(address functionsRouter, uint64 subId, address link, uint256 deployerKey) public {
-        console.log("Funding subscription: ", subId);
-        console.log("Using Functions Router: ", functionsRouter);
-        console.log("On chainID: ", block.chainid);
+        console.log("Funding subscription %d with: %d JUELS", subId, FUND_AMOUNT);
+
         if (block.chainid == 31337) {
             vm.startBroadcast(deployerKey);
             FunctionsRouterMock(functionsRouter).fundSubscription(subId, FUND_AMOUNT);
@@ -75,8 +74,6 @@ contract FundSubscription is Script {
 contract AddConsumer is Script {
     function addConsumer(address consumer, address functionsRouter, uint64 subId, uint256 deployerKey) public {
         console.log("Adding Consumer contract: ", consumer);
-        console.log("Using Functions Router: ", functionsRouter);
-        console.log("On ChainId: ", block.chainid);
 
         vm.startBroadcast(deployerKey);
         FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
@@ -85,8 +82,7 @@ contract AddConsumer is Script {
 
     function addConsumerUsingConfig(address functionsConsumer) public {
         HelperConfig helperConfig = new HelperConfig();
-        (address functionsRouter,, address link,, uint64 subId, uint256 deployerKey) =
-            helperConfig.activeNetworkConfig();
+        (address functionsRouter,,, uint64 subId, uint256 deployerKey) = helperConfig.activeNetworkConfig();
         console.log("deployer: ", deployerKey);
         addConsumer(functionsConsumer, functionsRouter, subId, deployerKey);
     }

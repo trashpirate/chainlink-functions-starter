@@ -7,30 +7,62 @@ import {FunctionsRouterMock} from "test/mocks/FunctionsRouterMock.sol";
 import {DeployFunctionsConsumer} from "script/DeployFunctionsConsumer.s.sol";
 import {FunctionsConsumer} from "src/FunctionsConsumer.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
+import {CreateSubscription, FundSubscription, AddConsumer} from "script/Subscriptions.s.sol";
 
-contract TestScript is Test {
+contract SubscriptionsTest is Test {
     // configurations
     HelperConfig helperConfig;
-    HelperConfig.NetworkConfig networkConfig;
-
-    // contracts
-    DeployFunctionsConsumer deployer;
-    FunctionsConsumer functionsConsumer;
 
     // helpers
-    address USER = makeAddr("user");
+    address functionsRouter;
+    address link;
+    bytes32 donID;
+    uint64 subscriptionId;
+    uint256 deployerKey;
 
     function setUp() external virtual {
-        deployer = new DeployFunctionsConsumer();
-        (functionsConsumer, helperConfig) = deployer.run();
-
-        networkConfig = helperConfig.getActiveNetworkConfig();
+        helperConfig = new HelperConfig();
+        (functionsRouter, link, donID,, deployerKey) = helperConfig.activeNetworkConfig();
     }
 
-    function test__Deployment() public {
+    function test__CreateSubscription() public {
+        CreateSubscription createSubscription = new CreateSubscription();
+        subscriptionId = createSubscription.createSubscription(functionsRouter, deployerKey);
+        assertEq(subscriptionId, 1);
+    }
+
+    function test__FundSubscription() public {
+        // create subscription
+        CreateSubscription createSubscription = new CreateSubscription();
+        subscriptionId = createSubscription.createSubscription(functionsRouter, deployerKey);
+
+        // fund subscription
+        FundSubscription fundSubscription = new FundSubscription();
+        fundSubscription.fundSubscription(functionsRouter, subscriptionId, link, deployerKey);
+
         FunctionsRouterMock.Subscription memory sub =
-            FunctionsRouterMock(networkConfig.functionsRouter).getSubscription(functionsConsumer.getSubscriptionId());
-        console.log("Subscription Owner: ", sub.owner);
-        console.log("Subscription Number of Consumbers: ", sub.consumers.length);
+            FunctionsRouterMock(functionsRouter).getSubscription(subscriptionId);
+
+        assertGt(sub.balance, 0);
+    }
+
+    function test__AddConsumer() public {
+        // create subscription
+        CreateSubscription createSubscription = new CreateSubscription();
+        subscriptionId = createSubscription.createSubscription(functionsRouter, deployerKey);
+
+        // fund subscription
+        FundSubscription fundSubscription = new FundSubscription();
+        fundSubscription.fundSubscription(functionsRouter, subscriptionId, link, deployerKey);
+
+        FunctionsConsumer consumer = new FunctionsConsumer(functionsRouter, subscriptionId, donID, "some code");
+
+        // add consumer
+        AddConsumer addConsumer = new AddConsumer();
+        addConsumer.addConsumer(address(consumer), functionsRouter, subscriptionId, deployerKey);
+
+        FunctionsRouterMock.Subscription memory sub =
+            FunctionsRouterMock(functionsRouter).getSubscription(subscriptionId);
+        assertEq(sub.consumers[0], address(consumer));
     }
 }

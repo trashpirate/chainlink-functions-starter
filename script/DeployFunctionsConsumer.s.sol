@@ -1,23 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {FunctionsConsumer} from "src/FunctionsConsumer.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {CreateSubscription, FundSubscription, AddConsumer} from "./Subscriptions.s.sol";
 
 contract DeployFunctionsConsumer is Script {
     function run() external returns (FunctionsConsumer, HelperConfig) {
+        string memory functionsCode = vm.readFile("assets/source.txt");
+
         HelperConfig helperConfig = new HelperConfig();
 
-        (
-            address functionsRouter,
-            address functionsCoordinator,
-            address link,
-            bytes32 donID,
-            uint64 subscriptionId,
-            uint256 deployerKey
-        ) = helperConfig.activeNetworkConfig();
+        (address functionsRouter, address link, bytes32 donID, uint64 subscriptionId, uint256 deployerKey) =
+            helperConfig.activeNetworkConfig();
 
         if (subscriptionId == 0) {
             // create subscription
@@ -30,7 +26,7 @@ contract DeployFunctionsConsumer is Script {
         }
 
         vm.startBroadcast();
-        FunctionsConsumer consumer = new FunctionsConsumer(functionsRouter, subscriptionId);
+        FunctionsConsumer consumer = new FunctionsConsumer(functionsRouter, subscriptionId, donID, functionsCode);
         vm.stopBroadcast();
 
         // add consumer

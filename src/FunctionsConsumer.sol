@@ -20,15 +20,20 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     uint64 private immutable i_subId;
+    uint32 private immutable i_gasLimit;
+    bytes32 private immutable i_donID;
+    string private i_source;
 
-    bytes32 public s_lastRequestId;
-    bytes public s_lastResponse;
-    bytes public s_lastError;
+    bytes32 private s_lastRequestId;
+    bytes private s_lastResponse;
+    bytes private s_lastError;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
     event Response(bytes32 indexed requestId, bytes response, bytes err);
+    event RequestRevertedWithErrorMsg(string reason);
+    event RequestRevertedWithoutErrorMsg(bytes data);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -42,8 +47,14 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    constructor(address router, uint64 subId) FunctionsClient(router) ConfirmedOwner(msg.sender) {
+    constructor(address router, uint64 subId, bytes32 donId, string memory source)
+        FunctionsClient(router)
+        ConfirmedOwner(msg.sender)
+    {
         i_subId = subId;
+        i_gasLimit = 500_000;
+        i_donID = donId;
+        i_source = source;
     }
 
     // receive / fallback functions
@@ -54,27 +65,16 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     /**
      * @notice Send a simple request
-     * @param source JavaScript source code
-     * @param encryptedSecretsUrls Encrypted URLs where to fetch user secrets
-     * @param donHostedSecretsSlotID Don hosted secrets slotId
-     * @param donHostedSecretsVersion Don hosted secrets version
-     * @param args List of arguments accessible from within the source code
-     * @param bytesArgs Array of bytes arguments, represented as hex strings
-     * @param subscriptionId Billing ID
      */
-    function sendRequest(
-        string memory source,
-        bytes memory encryptedSecretsUrls,
-        uint8 donHostedSecretsSlotID,
-        uint64 donHostedSecretsVersion,
-        string[] memory args,
-        bytes[] memory bytesArgs,
-        uint64 subscriptionId,
-        uint32 gasLimit,
-        bytes32 donID
-    ) external onlyOwner returns (bytes32 requestId) {
+    function sendRequest() external onlyOwner returns (bytes32 requestId) {
+        uint8 donHostedSecretsSlotID = 0;
+        uint64 donHostedSecretsVersion = 1;
+        bytes memory encryptedSecretsUrls = "";
+        string[] memory args;
+        bytes[] memory bytesArgs;
+
         FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(source);
+        req.initializeRequestForInlineJavaScript(i_source);
         if (encryptedSecretsUrls.length > 0) {
             req.addSecretsReference(encryptedSecretsUrls);
         } else if (donHostedSecretsVersion > 0) {
@@ -82,7 +82,10 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         }
         if (args.length > 0) req.setArgs(args);
         if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
-        s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
+
+        s_lastRequestId = _sendRequest(req.encodeCBOR(), i_subId, i_gasLimit, i_donID);
+        emit RequestSent(requestId);
+
         return s_lastRequestId;
     }
 
@@ -135,7 +138,23 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
+    function getLastResponse() public view returns (bytes memory) {
+        return s_lastResponse;
+    }
+
     function getSubscriptionId() public view returns (uint64) {
         return i_subId;
+    }
+
+    function getGasLimit() public view returns (uint32) {
+        return i_gasLimit;
+    }
+
+    function getDonID() public view returns (bytes32) {
+        return i_donID;
+    }
+
+    function getSource() public view returns (string memory) {
+        return i_source;
     }
 }
