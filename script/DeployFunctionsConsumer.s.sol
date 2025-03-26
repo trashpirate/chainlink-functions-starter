@@ -8,7 +8,7 @@ import {CreateSubscription, FundSubscription, AddConsumer} from "./Subscriptions
 
 contract DeployFunctionsConsumer is Script {
     function run() external returns (FunctionsConsumer, HelperConfig) {
-        string memory functionsCode = vm.readFile("assets/source.txt");
+        string memory functionsCode = vm.readFile("source/source.js");
 
         HelperConfig helperConfig = new HelperConfig();
 

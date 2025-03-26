@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist", // Where compiled JS will go
+    "rootDir": "./" // Root of your TS files
+  },
+  "include": [
+    "source/**/*.ts"
+  ], // Only compile files in simulation/
+  "exclude": [
+    "node_modules"
+  ]
+}

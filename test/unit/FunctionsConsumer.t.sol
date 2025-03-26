@@ -35,7 +35,7 @@ contract FunctionsConsumerTest is Test {
         assertNotEq(consumer.getSubscriptionId(), 0);
         assertEq(consumer.getDonID(), networkConfig.donID);
         assertEq(consumer.getGasLimit(), 500_000);
-        assertEq(consumer.getSource(), vm.readFile("assets/source.txt"));
+        assertEq(consumer.getSource(), vm.readFile("source/source.js"));
 
         FunctionsRouterMock.Subscription memory sub =
             FunctionsRouterMock(networkConfig.functionsRouter).getSubscription(consumer.getSubscriptionId());

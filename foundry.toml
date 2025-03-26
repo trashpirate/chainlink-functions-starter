@@ -5,7 +5,7 @@ libs = ["lib"]
 solc = "0.8.26"
 optimizer = true
 optimizer_rounds = 200
-fs_permissions = [{ access = "read", path = "./broadcast" },{ access = "read", path = "./assets" }]
+fs_permissions = [{ access = "read", path = "./broadcast" },{ access = "read", path = "./source" }]
 
 
 [fuzz]
