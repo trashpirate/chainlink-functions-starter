@@ -57,7 +57,7 @@ contract FundSubscription is Script {
 
         if (block.chainid == 31337) {
             vm.startBroadcast(deployerKey);
-            FunctionsRouterMock(functionsRouter).fundSubscription(subId, FUND_AMOUNT);
+            LinkToken(link).transferAndCall(functionsRouter, FUND_AMOUNT, abi.encode(subId));
             vm.stopBroadcast();
         } else {
             vm.startBroadcast();
@@ -75,9 +75,15 @@ contract AddConsumer is Script {
     function addConsumer(address consumer, address functionsRouter, uint64 subId, uint256 deployerKey) public {
         console.log("Adding Consumer contract: ", consumer);
 
-        vm.startBroadcast(deployerKey);
-        FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
-        vm.stopBroadcast();
+        if (block.chainid == 31337) {
+            vm.startBroadcast(deployerKey);
+            FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
+            vm.stopBroadcast();
+        } else {
+            vm.startBroadcast();
+            FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
+            vm.stopBroadcast();
+        }
     }
 
     function addConsumerUsingConfig(address functionsConsumer) public {

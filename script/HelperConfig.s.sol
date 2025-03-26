@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {FunctionsRouterMock} from "test/mocks/FunctionsRouterMock.sol";
-import {FunctionsCoordinatorMock, FunctionsBillingConfig} from "test/mocks/FunctionsCoordinatorMock.sol";
 
 import {LinkToken} from "test/mocks/LinkToken.sol";
 
@@ -66,7 +65,7 @@ contract HelperConfig is Script {
         // Deploy LINK token
         LinkToken linkToken = new LinkToken();
 
-        // Fund with deployer LINK
+        // Fund default address with some LINK
         linkToken.transfer(ANVIL_DEFAULT_ADDRESS, 100 ether);
 
         // Deploy mock router
