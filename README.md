@@ -11,7 +11,7 @@
 
 
 ## About
-This repo contains a starter kit template for developing and testing smart contracts with [Chainlink Functions](https://docs.chain.link/chainlink-functions/). It includes a basic `FunctionsConsumer` contract and a `FunctionsRouterMock` contract to locally test send and fulfill requests. Note that this setup short-circuits the Chainlink oracle network and is only for local testing.
+This repo contains a starter kit template for developing and testing smart contracts with [Chainlink Functions](https://docs.chain.link/chainlink-functions/). It includes a basic `FunctionsConsumer` contract and a `FunctionsRouterMock` contract to locally test send and fulfill requests. The repo also includes the [functions-toolkit](https://www.npmjs.com/package/@chainlink/functions-toolkit) to simulate and interact with the Chainlink oracle. Scripts to spin up a local chainlink test network is also included.
 
 ## Installation
 
