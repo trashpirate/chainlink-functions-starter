@@ -2,14 +2,6 @@
   "name": "chainlink-functions-starter",
   "version": "1.0.0",
   "description": "Starter Template for Chainlink Functions Development",
-  "main": " ",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/trashpirate/chainlink-functions-starter"
@@ -20,7 +12,7 @@
     "@chainlink/env-enc": "^1.0.5",
     "@chainlink/functions-toolkit": "^0.3.2",
     "@types/node": "^22.13.13",
-    "ethers": "^6.13.5",
+    "ethers": "^5.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }

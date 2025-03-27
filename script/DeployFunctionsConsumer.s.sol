@@ -5,10 +5,16 @@ import {Script, console} from "forge-std/Script.sol";
 import {FunctionsConsumer} from "src/FunctionsConsumer.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {CreateSubscription, FundSubscription, AddConsumer} from "./Subscriptions.s.sol";
+import {FunctionsRouter} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsRouter.sol";
+import {LinkToken} from "test/mocks/LinkToken.sol";
 
 contract DeployFunctionsConsumer is Script {
+    uint96 public constant FUND_AMOUNT = 3 ether;
+
     function run() external returns (FunctionsConsumer, HelperConfig) {
-        string memory functionsCode = vm.readFile("source/source.js");
+        string memory functionsCode = vm.readFile("functions-toolkit/source/code.js");
+        console.log("Functions Code Length: %s", bytes(functionsCode).length);
+        // console.log("Functions Code: %s", functionsCode);
 
         HelperConfig helperConfig = new HelperConfig();
 
@@ -25,9 +31,17 @@ contract DeployFunctionsConsumer is Script {
             fundSubscription.fundSubscription(functionsRouter, subscriptionId, link, deployerKey);
         }
 
-        vm.startBroadcast();
+        console.log("--------------------- DEPLOY CONSUMER --------------------");
+
+        if (block.chainid == 31337 || block.chainid == 1337) {
+            vm.startBroadcast(deployerKey);
+        } else {
+            vm.startBroadcast();
+        }
         FunctionsConsumer consumer = new FunctionsConsumer(functionsRouter, subscriptionId, donID, functionsCode);
         vm.stopBroadcast();
+        console.log("Functions Consumer deployed at: %s", address(consumer));
+        console.log("-------------------------------------------------------");
 
         // add consumer
         AddConsumer addConsumer = new AddConsumer();

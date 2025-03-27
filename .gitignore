@@ -16,3 +16,4 @@ docs/
 
 # Dotenv file
 .env
+.env.enc

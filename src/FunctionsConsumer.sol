@@ -52,7 +52,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         ConfirmedOwner(msg.sender)
     {
         i_subId = subId;
-        i_gasLimit = 500_000;
+        i_gasLimit = 300_000;
         i_donID = donId;
         i_source = source;
     }
@@ -68,9 +68,12 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
      */
     function sendRequest() external onlyOwner returns (bytes32 requestId) {
         uint8 donHostedSecretsSlotID = 0;
-        uint64 donHostedSecretsVersion = 1;
+        uint64 donHostedSecretsVersion = 2;
         bytes memory encryptedSecretsUrls = "";
-        string[] memory args;
+        string[] memory args = new string[](2);
+
+        args[0] = "ipfs://bafybeieokkbwo2hp3eqkfa5chypmevxjii275icwxnuc7dmuexi3qsuvu4/5";
+        args[1] = "Color";
         bytes[] memory bytesArgs;
 
         FunctionsRequest.Request memory req;

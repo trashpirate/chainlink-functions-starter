@@ -1,11 +1,11 @@
 
 -include .env
 
-.PHONY: all test clean deploy
+.PHONY: all test clean deploy simulate
 
 DEFAULT_ANVIL_ADDRESS := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 DEFAULT_ANVIL_KEY := 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
+	
 all: clean remove install update build
 
 # Clean the repo
@@ -14,7 +14,7 @@ clean  :; forge clean
 # Remove modules
 remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
 
-install:; npm install && forge install foundry-rs/forge-std --no-commit && forge install Cyfrin/foundry-devops --no-commit && forge install transmissions11/solmate --no-commit && forge install https://github.com/smartcontractkit/chainlink.git --no-commit && forge install OpenZeppelin/openzeppelin-contracts --no-commit
+install:; npm install && forge install --no-commit
 
 install-deno:; curl -fsSL https://deno.land/install.sh | sh 
 
@@ -48,13 +48,28 @@ slither :; slither ./src
 
 # deployment
 deploy-local: 
-	@forge script script/Deploy.s.sol:Deploy --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast 
+	@forge script script/DeployFunctionsConsumer.s.sol:DeployFunctionsConsumer --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast -vv
 
-deploy: 
-	@forge script script/Deploy.s.sol:Deploy --rpc-url $(RPC_TEST) --account ${ACCOUNT_NAME} --sender ${ACCOUNT_ADDRESS} --broadcast --verify --etherscan-api-key ${ETHERSCAN_KEY} -vvvv
+deploy-testnet: 
+	@forge script script/DeployFunctionsConsumer.s.sol:DeployFunctionsConsumer --rpc-url $(RPC_TEST) --account ${ACCOUNT_NAME} --sender ${ACCOUNT_ADDRESS} --broadcast --verify --etherscan-api-key ${ETHERSCAN_KEY} -vvvv
+
+# interactions
+send-request:
+	@forge script script/Interactions.s.sol:SendRequest --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast -vv
 
 # command line interaction
 contract-call:
 	@cast call <contract address> "FunctionSignature(params)(returns)" arguments --rpc-url ${<RPC>}
+
+# chainlink function simulation
+start-local-network :; npx ts-node functions-toolkit/local-network/start.ts
+simulate-response :; npx ts-node functions-toolkit/local-network/simulate.ts $(ARGS)
+
+# helpers
+chainid:
+	@forge script script/Helpers.s.sol:CheckActiveNetworkId --rpc-url $(RPC_LOCALHOST) -vv
+
+cf-network-config:
+	@forge script script/Helpers.s.sol:ReadCfNetworkConfig --rpc-url $(RPC_LOCALHOST) -vv
 
 -include ${FCT_PLUGIN_PATH}/makefile-external

@@ -43,6 +43,8 @@ Update chain ids in the `HelperConfig.s.sol` file for the chain you want to conf
 - Base: 8453 | Base sepolia: 84532
 - Bsc: 56 | Bsc Testnet: 97
 
+Paste Javascript source code for chainlink functions execution into the `source.js` file.
+
 ### Run tests
 ```bash
 $ forge test
@@ -61,7 +63,37 @@ $ make deploy-mainnet
 ## Deployments
 
 ### Testnet
+https://sepolia.basescan.org/address/0xee54de507ab45659f7aed9f2bbb624c6abcfe744#code
+
 ### Mainnet
+
+## Chainlink Functions Simulations
+
+1. Paste javascript source code for chainlink functions execution into the `source.js` file
+
+2. Run the following command to simulate the chainlink functions execution:
+```bash
+$ make simulate-response ARGS="arg1 arg2 ..."
+```
+For example try `make simulate-response ARGS="ipfs://bafybeieokkbwo2hp3eqkfa5chypmevxjii275icwxnuc7dmuexi3qsuvu4/5 Color"`
+
+## Run Local Chainlink Functions Testnet
+
+1. Setup your environment variables (secrets) by creating a `.env.enc` file and running:
+
+```bash
+# set password to encrypt secrets (or create a new env.enc file)
+$ npx env-enc set-pw
+
+# set secrets by following the prompts; not that at least you need to set PRIVATE_KEY to run the testnet
+$ npx env-enc set
+```
+
+2. Start the local testnet by running:
+
+```bash
+$ make start-local-network
+```
 
 ## Contributing
 

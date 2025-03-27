@@ -6,6 +6,7 @@ import {HelperConfig} from "./HelperConfig.s.sol";
 import {FunctionsRouterMock} from "test/mocks/FunctionsRouterMock.sol";
 import {IFunctionsSubscriptions} from
     "@chainlink/contracts/src/v0.8/functions/v1_0_0/interfaces/IFunctionsSubscriptions.sol";
+import {FunctionsRouter} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsRouter.sol";
 import {LinkToken} from "test/mocks/LinkToken.sol";
 import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 
@@ -19,20 +20,22 @@ contract CreateSubscription is Script {
     }
 
     function createSubscription(address functionsRouter, uint256 deployerKey) public returns (uint64) {
+        console.log("---------------- CREATE SUBSCRIPTION ------------------");
         console.log("Creating subscription on ChainId: ", block.chainid);
         console.log("Using Functions Router: ", functionsRouter);
 
         uint64 subId;
-        if (block.chainid == 31337) {
+        if (block.chainid == 31337 || block.chainid == 1337) {
             vm.startBroadcast(deployerKey);
-            subId = FunctionsRouterMock(functionsRouter).createSubscription();
+            subId = FunctionsRouter(functionsRouter).createSubscription();
             vm.stopBroadcast();
         } else {
             vm.startBroadcast();
-            subId = IFunctionsSubscriptions(functionsRouter).createSubscription();
+            subId = FunctionsRouter(functionsRouter).createSubscription();
             vm.stopBroadcast();
         }
         console.log("Created Subscription with SubId: ", subId);
+        console.log("-------------------------------------------------------");
         return subId;
     }
 
@@ -53,9 +56,10 @@ contract FundSubscription is Script {
     }
 
     function fundSubscription(address functionsRouter, uint64 subId, address link, uint256 deployerKey) public {
+        console.log("---------------- FUND SUBSCRIPTION ------------------");
         console.log("Funding subscription %d with: %d JUELS", subId, FUND_AMOUNT);
 
-        if (block.chainid == 31337) {
+        if (block.chainid == 31337 || block.chainid == 1337) {
             vm.startBroadcast(deployerKey);
             LinkToken(link).transferAndCall(functionsRouter, FUND_AMOUNT, abi.encode(subId));
             vm.stopBroadcast();
@@ -64,6 +68,8 @@ contract FundSubscription is Script {
             LinkToken(link).transferAndCall(functionsRouter, FUND_AMOUNT, abi.encode(subId));
             vm.stopBroadcast();
         }
+
+        console.log("-------------------------------------------------------");
     }
 
     function run() external {
@@ -73,23 +79,25 @@ contract FundSubscription is Script {
 
 contract AddConsumer is Script {
     function addConsumer(address consumer, address functionsRouter, uint64 subId, uint256 deployerKey) public {
+        console.log("--------------------- ADD CONSUMER --------------------");
         console.log("Adding Consumer contract: ", consumer);
 
-        if (block.chainid == 31337) {
+        if (block.chainid == 31337 || block.chainid == 1337) {
             vm.startBroadcast(deployerKey);
-            FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
+            FunctionsRouter(functionsRouter).addConsumer(subId, consumer);
             vm.stopBroadcast();
         } else {
             vm.startBroadcast();
-            FunctionsRouterMock(functionsRouter).addConsumer(subId, consumer);
+            FunctionsRouter(functionsRouter).addConsumer(subId, consumer);
             vm.stopBroadcast();
         }
+        console.log("-------------------------------------------------------");
     }
 
     function addConsumerUsingConfig(address functionsConsumer) public {
         HelperConfig helperConfig = new HelperConfig();
         (address functionsRouter,,, uint64 subId, uint256 deployerKey) = helperConfig.activeNetworkConfig();
-        console.log("deployer: ", deployerKey);
+
         addConsumer(functionsConsumer, functionsRouter, subId, deployerKey);
     }
 

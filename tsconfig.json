@@ -9,7 +9,8 @@
     "rootDir": "./" // Root of your TS files
   },
   "include": [
-    "source/**/*.ts"
+    "functions-toolkit/**/*.ts",
+    "functions-toolkit/**/*.js",
   ], // Only compile files in simulation/
   "exclude": [
     "node_modules"

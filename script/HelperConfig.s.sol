@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console, console2} from "forge-std/Script.sol";
 import {FunctionsRouterMock} from "test/mocks/FunctionsRouterMock.sol";
 
 import {LinkToken} from "test/mocks/LinkToken.sol";
 
 contract HelperConfig is Script {
+    struct FunctionsConfig {
+        string donID;
+        address functionsRouter;
+        address linkToken;
+    }
+
     struct NetworkConfig {
         address functionsRouter;
         address link;
@@ -28,6 +34,8 @@ contract HelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 84532 || block.chainid == 84531) {
             activeNetworkConfig = getTestnetConfig();
+        } else if (block.chainid == 1337) {
+            activeNetworkConfig = getFunctionsAnvilConfig();
         } else {
             activeNetworkConfig = getAnvilConfig();
         }
@@ -36,15 +44,6 @@ contract HelperConfig is Script {
     /*//////////////////////////////////////////////////////////////
                           CHAIN CONFIGURATIONS
     //////////////////////////////////////////////////////////////*/
-    function getTestnetConfig() public view returns (NetworkConfig memory) {
-        return NetworkConfig({
-            functionsRouter: 0xf9B8fc078197181C841c296C876945aaa425B278,
-            link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06,
-            donID: 0x66756e2d626173652d6d61696e6e65742d310000000000000000000000000000,
-            subscriptionId: 0,
-            deployerKey: vm.envUint("TESTNET_PRIVATE_KEY")
-        });
-    }
 
     function getMainnetConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
@@ -53,6 +52,39 @@ contract HelperConfig is Script {
             donID: 0x66756e2d626173652d7365706f6c69612d310000000000000000000000000000,
             subscriptionId: 0,
             deployerKey: uint256(0x0)
+        });
+    }
+
+    function getTestnetConfig() public view returns (NetworkConfig memory) {
+        return NetworkConfig({
+            functionsRouter: 0xf9B8fc078197181C841c296C876945aaa425B278,
+            link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06,
+            donID: 0x66756e2d626173652d6d61696e6e65742d310000000000000000000000000000,
+            subscriptionId: 0,
+            deployerKey: vm.envUint("ANVIL_DEFAULT_KEY")
+        });
+    }
+
+    function getFunctionsAnvilConfig() public view returns (NetworkConfig memory) {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/functions-toolkit/local-network/cf-network-config.json");
+        string memory json = vm.readFile(path);
+        bytes memory data = vm.parseJson(json);
+
+        FunctionsConfig memory config = abi.decode(data, (FunctionsConfig));
+
+        console.log("--------------- Local Testnet Config ------------------");
+        console.log("Link Token: ", config.linkToken);
+        console.log("Functions Router: ", config.functionsRouter);
+        console.log("DonID: ", config.donID);
+        console.log("-------------------------------------------------------");
+
+        return NetworkConfig({
+            functionsRouter: config.functionsRouter,
+            link: config.linkToken,
+            donID: bytes32(bytes(config.donID)), // mock donID
+            subscriptionId: 0,
+            deployerKey: ANVIL_DEFAULT_KEY
         });
     }
 

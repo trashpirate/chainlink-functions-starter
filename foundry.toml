@@ -3,9 +3,10 @@ src = "src"
 out = "out"
 libs = ["lib"]
 solc = "0.8.26"
+evm_version = "shanghai"
 optimizer = true
 optimizer_rounds = 200
-fs_permissions = [{ access = "read", path = "./broadcast" },{ access = "read", path = "./source" }]
+fs_permissions = [{ access = "read", path = "./broadcast" },{ access = "read", path = "./functions-toolkit" }]
 
 
 [fuzz]

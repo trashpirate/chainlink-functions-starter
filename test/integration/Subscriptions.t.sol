@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FunctionsRouterMock} from "test/mocks/FunctionsRouterMock.sol";
+import {FunctionsRouter} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsRouter.sol";
 
 import {DeployFunctionsConsumer} from "script/DeployFunctionsConsumer.s.sol";
 import {FunctionsConsumer} from "src/FunctionsConsumer.sol";
@@ -28,7 +29,10 @@ contract SubscriptionsTest is Test {
     function test__CreateSubscription() public {
         CreateSubscription createSubscription = new CreateSubscription();
         subscriptionId = createSubscription.createSubscription(functionsRouter, deployerKey);
-        assertEq(subscriptionId, 1);
+
+        FunctionsRouter.Subscription memory subscription =
+            FunctionsRouter(functionsRouter).getSubscription(subscriptionId);
+        assertEq(subscription.owner, 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
     }
 
     function test__FundSubscription() public {

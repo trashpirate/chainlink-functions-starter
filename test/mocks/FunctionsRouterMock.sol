@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.26;
 
 import {IFunctionsCoordinator} from
     "@chainlink/contracts/src/v0.8/functions/v1_0_0/interfaces/IFunctionsCoordinator.sol";
@@ -296,8 +296,7 @@ contract FunctionsRouterMock is ConfirmedOwner {
         }
 
         Subscription memory subscription = getSubscription(subscriptionId);
-        Consumer memory consumer = getConsumer(msg.sender, subscriptionId);
-        consumer.initiatedRequests++;
+        s_consumers[msg.sender][subscriptionId].initiatedRequests++;
 
         uint72 adminFee = s_config.adminFee;
 
@@ -344,6 +343,18 @@ contract FunctionsRouterMock is ConfirmedOwner {
 
     function getNextRequestId() external view returns (uint256) {
         return s_nextRequestId;
+    }
+
+    function pendingRequestExists(uint64 subscriptionId) public view returns (bool) {
+        address[] memory consumers = s_subscriptions[subscriptionId].consumers;
+        // NOTE: loop iterations are bounded by config.maxConsumers
+        for (uint256 i = 0; i < consumers.length; ++i) {
+            Consumer memory consumer = s_consumers[consumers[i]][subscriptionId];
+            if (consumer.initiatedRequests != consumer.completedRequests) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ================================================================
@@ -396,6 +407,8 @@ contract FunctionsRouterMock is ConfirmedOwner {
             err: err,
             callbackReturnData: result.returnData
         });
+
+        s_consumers[commitment.client][commitment.subscriptionId].completedRequests++;
 
         delete s_commitments[requestId];
         return (resultCode, receipt.callbackGasCostJuels);
