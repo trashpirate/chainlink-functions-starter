@@ -1,4 +1,4 @@
-# FOUNDRY STARTER
+# CHAINLINK FUNCTIONS STARTER
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
 ![Forge](https://img.shields.io/badge/forge-v0.2.0-blue.svg?style=for-the-badge)

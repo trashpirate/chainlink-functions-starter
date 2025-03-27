@@ -31,13 +31,13 @@ contract HelperConfig is Script {
 
     constructor() {
         if (block.chainid == 8453 || block.chainid == 123) {
-            activeNetworkConfig = getMainnetConfig();
+            activeNetworkConfig = _getMainnetConfig();
         } else if (block.chainid == 84532 || block.chainid == 84531) {
-            activeNetworkConfig = getTestnetConfig();
+            activeNetworkConfig = _getTestnetConfig();
         } else if (block.chainid == 1337) {
-            activeNetworkConfig = getFunctionsAnvilConfig();
+            activeNetworkConfig = _getFunctionsAnvilConfig();
         } else {
-            activeNetworkConfig = getAnvilConfig();
+            activeNetworkConfig = _getAnvilConfig();
         }
     }
 
@@ -45,7 +45,7 @@ contract HelperConfig is Script {
                           CHAIN CONFIGURATIONS
     //////////////////////////////////////////////////////////////*/
 
-    function getMainnetConfig() public pure returns (NetworkConfig memory) {
+    function _getMainnetConfig() internal pure returns (NetworkConfig memory) {
         return NetworkConfig({
             functionsRouter: 0xf9B8fc078197181C841c296C876945aaa425B278,
             link: 0x404460C6A5EdE2D891e8297795264fDe62ADBB75,
@@ -55,7 +55,7 @@ contract HelperConfig is Script {
         });
     }
 
-    function getTestnetConfig() public view returns (NetworkConfig memory) {
+    function _getTestnetConfig() internal view returns (NetworkConfig memory) {
         return NetworkConfig({
             functionsRouter: 0xf9B8fc078197181C841c296C876945aaa425B278,
             link: 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06,
@@ -65,7 +65,7 @@ contract HelperConfig is Script {
         });
     }
 
-    function getFunctionsAnvilConfig() public view returns (NetworkConfig memory) {
+    function _getFunctionsAnvilConfig() internal view returns (NetworkConfig memory) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/functions-toolkit/local-network/cf-network-config.json");
         string memory json = vm.readFile(path);
@@ -88,7 +88,7 @@ contract HelperConfig is Script {
         });
     }
 
-    function getAnvilConfig() public returns (NetworkConfig memory) {
+    function _getAnvilConfig() internal returns (NetworkConfig memory) {
         uint32[] memory maxCallbackGasLimits = new uint32[](1);
         maxCallbackGasLimits[0] = 500000;
 
@@ -123,6 +123,14 @@ contract HelperConfig is Script {
             subscriptionId: 0,
             deployerKey: ANVIL_DEFAULT_KEY
         });
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function udpateSubscriptionId(uint64 newSubId) public {
+        activeNetworkConfig.subscriptionId = newSubId;
     }
 
     /*//////////////////////////////////////////////////////////////

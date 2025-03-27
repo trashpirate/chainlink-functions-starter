@@ -20,7 +20,14 @@ contract FunctionsConsumerTest is Test {
 
     // helpers
     address USER = makeAddr("user");
-    bytes response = "WHITE";
+    bytes response = "YELLOW";
+
+    modifier onlyAnvil() {
+        if (block.chainid != 31337) {
+            return;
+        }
+        _;
+    }
 
     function fulfilled() internal {
         if (block.chainid == 31337) {
@@ -55,7 +62,7 @@ contract FunctionsConsumerTest is Test {
         }
     }
 
-    function test__SendRequest() public {
+    function test__SendRequest() public onlyAnvil {
         string[] memory args = new string[](2);
         args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/21";
         args[1] = "Color";
@@ -68,7 +75,7 @@ contract FunctionsConsumerTest is Test {
         assertEq(router.pendingRequestExists(consumer.getSubscriptionId()), true);
     }
 
-    function test__FulfillRequest() public {
+    function test__FulfillRequest() public onlyAnvil {
         string[] memory args = new string[](2);
         args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/21";
         args[1] = "Color";
@@ -87,6 +94,11 @@ contract FunctionsConsumerTest is Test {
         sub = FunctionsRouter(networkConfig.functionsRouter).getSubscription(consumer.getSubscriptionId());
         console.log("Subscription Balance after: ", sub.balance);
 
-        assertEq(consumer.getLastResponse(), response);
+        bytes memory lastResponse = consumer.getLastResponse();
+        console.log("Last Response: ", string(lastResponse));
+
+        console.log("Expected Response: ", string(response));
+
+        assertEq(lastResponse, response);
     }
 }
