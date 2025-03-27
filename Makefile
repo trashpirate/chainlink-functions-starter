@@ -57,6 +57,9 @@ deploy-testnet:
 send-request:
 	@forge script script/Interactions.s.sol:SendRequest --rpc-url $(RPC_LOCALHOST) --private-key ${DEFAULT_ANVIL_KEY} --sender ${DEFAULT_ANVIL_ADDRESS} --broadcast -vv
 
+get-response:
+	@forge script script/Interactions.s.sol:GetLastResponse --rpc-url $(RPC_LOCALHOST) -vv
+
 # command line interaction
 contract-call:
 	@cast call <contract address> "FunctionSignature(params)(returns)" arguments --rpc-url ${<RPC>}

@@ -56,15 +56,23 @@ contract FunctionsConsumerTest is Test {
     }
 
     function test__SendRequest() public {
+        string[] memory args = new string[](2);
+        args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/21";
+        args[1] = "Color";
+
         address owner = consumer.owner();
 
         vm.prank(owner);
-        consumer.sendRequest();
+        consumer.sendRequest(args);
 
         assertEq(router.pendingRequestExists(consumer.getSubscriptionId()), true);
     }
 
     function test__FulfillRequest() public {
+        string[] memory args = new string[](2);
+        args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/21";
+        args[1] = "Color";
+
         FunctionsRouter.Subscription memory sub =
             FunctionsRouter(networkConfig.functionsRouter).getSubscription(consumer.getSubscriptionId());
 
@@ -72,7 +80,7 @@ contract FunctionsConsumerTest is Test {
         address owner = consumer.owner();
 
         vm.prank(owner);
-        consumer.sendRequest();
+        consumer.sendRequest(args);
 
         fulfilled();
 

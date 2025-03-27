@@ -66,14 +66,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /**
      * @notice Send a simple request
      */
-    function sendRequest() external onlyOwner returns (bytes32 requestId) {
+    function sendRequest(string[] memory args) external onlyOwner returns (bytes32 requestId) {
         uint8 donHostedSecretsSlotID = 0;
         uint64 donHostedSecretsVersion = 2;
         bytes memory encryptedSecretsUrls = "";
-        string[] memory args = new string[](2);
 
-        args[0] = "ipfs://bafybeieokkbwo2hp3eqkfa5chypmevxjii275icwxnuc7dmuexi3qsuvu4/5";
-        args[1] = "Color";
         bytes[] memory bytesArgs;
 
         FunctionsRequest.Request memory req;

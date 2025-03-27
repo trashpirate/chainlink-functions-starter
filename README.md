@@ -79,6 +79,8 @@ For example try `make simulate-response ARGS="ipfs://bafybeieokkbwo2hp3eqkfa5chy
 
 ## Run Local Chainlink Functions Testnet
 
+**__Note: This setup is only works with `shanghai` EVM version or older!__**
+
 1. Setup your environment variables (secrets) by creating a `.env.enc` file and running:
 
 ```bash
@@ -94,6 +96,23 @@ $ npx env-enc set
 ```bash
 $ make start-local-network
 ```
+
+3. Deploy the contracts to the local testnet:
+
+```bash
+$ make deploy-local
+```
+
+4. Use the `Interactions.s.sol` script to perform interactions with the `FunctionsConsumer` contract. Here are some shortcuts:
+
+- Send a request to the `FunctionsConsumer` contract:
+    ```bash
+    $ make send-request
+    ```
+- Read the response from the `FunctionsConsumer` contract (wait a few seconds after you sent the request for it to fulfill):
+    ```bash
+    $ make get-response
+    ```
 
 ## Contributing
 

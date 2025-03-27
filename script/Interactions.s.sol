@@ -17,7 +17,12 @@ contract SendRequest is Script {
         } else {
             vm.startBroadcast();
         }
-        bytes32 requestId = FunctionsConsumer(consumer).sendRequest();
+
+        string[] memory args = new string[](2);
+        args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/124";
+        args[1] = "Color";
+
+        bytes32 requestId = FunctionsConsumer(consumer).sendRequest(args);
         vm.stopBroadcast();
         console.log("Request Sent; Request ID: ");
         console.logBytes32(requestId);
@@ -35,5 +40,24 @@ contract SendRequest is Script {
     function run() external returns (bytes32) {
         address consumer = DevOpsTools.get_most_recent_deployment("FunctionsConsumer", block.chainid);
         return sendRequestUsingConfig(consumer);
+    }
+}
+
+contract GetLastResponse is Script {
+    function getLastResponse(address consumer) public returns (bytes memory) {
+        console.log("---------------- READING RESPONSE ------------------");
+        console.log("Using Functions Consumer: ", consumer);
+
+        vm.startBroadcast();
+        bytes memory response = FunctionsConsumer(consumer).getLastResponse();
+        vm.stopBroadcast();
+        console.log("Response: ", string(response));
+        console.log("-------------------------------------------------------");
+        return response;
+    }
+
+    function run() external returns (bytes memory) {
+        address consumer = DevOpsTools.get_most_recent_deployment("FunctionsConsumer", block.chainid);
+        return getLastResponse(consumer);
     }
 }
