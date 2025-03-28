@@ -17,3 +17,6 @@ docs/
 # Dotenv file
 .env
 .env.enc
+
+# vscode
+.vscode/
