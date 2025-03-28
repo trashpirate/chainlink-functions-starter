@@ -14,9 +14,9 @@ clean  :; forge clean
 # Remove modules
 remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
 
-install:; npm install && forge install --no-commit
+install:; @npm install && forge install --no-commit
 
-install-deno:; curl -fsSL https://deno.land/install.sh | sh 
+install-deno:; @curl -fsSL https://deno.land/install.sh | sh 
 
 # update dependencies
 update:; forge update
