@@ -20,7 +20,6 @@ contract FunctionsConsumerTest is Test {
 
     // helpers
     address USER = makeAddr("user");
-    bytes response = "YELLOW";
 
     modifier onlyAnvil() {
         if (block.chainid != 31337) {
@@ -29,7 +28,7 @@ contract FunctionsConsumerTest is Test {
         _;
     }
 
-    function fulfilled() internal {
+    function fulfilled(bytes memory response) internal {
         if (block.chainid == 31337) {
             (FunctionsResponse.FulfillResult resultCode,) = FunctionsRouterMock(address(router)).fulfill(response);
             assertEq(uint256(resultCode), 0);
@@ -76,6 +75,8 @@ contract FunctionsConsumerTest is Test {
     }
 
     function test__FulfillRequest() public onlyAnvil {
+        bytes memory response = "YELLOW";
+
         string[] memory args = new string[](2);
         args[0] = "ipfs://bafybeic2a7jdsztni6jsnq2oarb3o5g7iuya5r4lcjfqi64rsucirdfobm/21";
         args[1] = "Color";
@@ -89,7 +90,7 @@ contract FunctionsConsumerTest is Test {
         vm.prank(owner);
         consumer.sendRequest(args);
 
-        fulfilled();
+        fulfilled(response);
 
         sub = FunctionsRouter(networkConfig.functionsRouter).getSubscription(consumer.getSubscriptionId());
         console.log("Subscription Balance after: ", sub.balance);
